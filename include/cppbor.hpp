@@ -25,7 +25,7 @@
 
 struct cbor_variant;
 typedef std::vector<cbor_variant> cbor_array;
-typedef std::map<std::string, cbor_variant> cbor_map;
+typedef std::map<cbor_variant, cbor_variant> cbor_map;
 typedef std::variant<int, double, std::string, std::monostate, std::vector<uint8_t>, cbor_array, cbor_map> cbor_baseclass;
 
 // Not supported: 64 bit ints, indefinite lengths
