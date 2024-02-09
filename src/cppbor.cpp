@@ -64,11 +64,26 @@ cbor_variant cbor_variant::construct_from(const std::vector<uint8_t>& in, unsign
             for (int pending_items=read_integer_header(in, h, offset); pending_items>0; pending_items--) {
                 // get the key
                 h=reinterpret_cast<const header*>(&in[*offset]);
-                if (h->major!=3) throw runtime_error("Asked to process a map entry whose key is not a string");
-                int key_length=read_integer_header(in, h, offset);
-                if (key_length<0) throw runtime_error("Length of a (map) key was expressed as a negative number");
-                string key { string(&in[*offset], &in[*offset+static_cast<unsigned int>(key_length)]) };
-                *offset+=static_cast<unsigned int>(key_length);
+                cbor_variant key;
+                switch (h->major) {
+                    case 0: key = read_integer_head(in, h, offset); break;
+                    case 1: key = { -1-read_integer_header(in, h, offset) }; break;
+                    case 2: // bytes and strings
+                    case 3: {
+                        int key_length=read_integer_header(in, h, offset);
+                        if (key_length<0) throw runtime_error("Length of a (map) key was expressed as a negative number");
+                        if (h->major==2)
+                            key = { vector<uint8_t>(&in[*offset], &in[*offset+static_cast<unsigned int>(key_length)]) };
+                        else {
+                            key = { string(&in[*offset], &in[*offset+static_cast<unsigned int>(key_length)]) };
+                        }
+                        *offset+=static_cast<unsigned int>(key_length);
+                        break;
+                    }
+                    default:
+                        throw runtime_error("Asked to process a map entry whose key is not a string");
+                        break;
+                }
 
                 // create the variant
                 get<cbor_map>(rtn)[key]=construct_from(in, offset);
